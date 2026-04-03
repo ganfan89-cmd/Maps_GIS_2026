@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="utf-8" />
+    <title>Карта Якутии</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 40px;
+            background-color: #f0f0f0;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+        }
+        
+        .main-layout {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+            max-width: 1900px;
+            gap: 20px;
+        }
+        
+        .top-section {
+            display: flex;
+            align-items: flex-start;
+            gap: 20px;
+        }
+        
+        .sidebar {
+            width: 450px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            height: calc(100vh - 100px);
+        }
+        
+        .sidebar-content {
+            flex: 1;
+            overflow-y: auto;
+            padding-right: 5px;
+        }
+        
+        .map-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        #map {
+            width: 100%;
+            height: 600px;
+            border: 3px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            position: relative;
+        }
+        
+        /* 👇 GPS КНОПКА НА КАРТЕ */
+        .map-gps-button {
+            position: absolute;
+            top: 50px;
+            left: auto;
+            right: 10px;
+            z-index: 2000;
+            padding: 10px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: 2px solid #333;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            box-shadow: 0 2px 10px rgba(102, 126, 234, 0.4);
+        }
+        
+        .map-gps-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.6);
+        }
+        
+        .map-gps-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .map-gps-status {
+            position: absolute;
+            top: 155px;
+            left: 10px;
+            z-index: 2000;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 12px;
+            display: none;
+            background: white;
+            border: 2px solid #333;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            max-width: 250px;
+        }
+        
+        .map-gps-status.show {
+            display: block;
+        }
+        
+        .map-gps-status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .map-gps-status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .map-gps-status.info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        
+        /* 👇 ЛЕНТА НОВОСТЕЙ */
+        .news-feed-container {
+            width: 96%;
+            background: rgba(255, 255, 255, 0.95);
+            border: 3px solid #333;
+            border-radius: 10px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            padding: 20px;
+            min-height: 300px;
+        }
+        
+        .news-feed-title {
+            font-size: 24px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 20px;
+            text-align: left;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .news-feed-count {
+            font-size: 16px;
+            font-weight: normal;
+            color: #666;
+            background: #f0f0f0;
+            padding: 4px 12px;
+            border-radius: 20px;
+        }
+        
+        .news-feed-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .news-card {
+            background: white;
+            border: 2px solid #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            transition: all 0.3s;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        
+        .news-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 6px 20px rgba(0,0,0,0.2);
+        }
+        
+        .news-card-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f0f0f0;
+            display: block;
+        }
+        
+        .news-card-content {
+            padding: 15px;
+        }
+        
+        .news-card-type {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: white;
+        }
+        
+        .news-card-type.олени { background: #795548; }
+        .news-card-type.растения { background: #4CAF50; }
+        .news-card-type.заморозки { background: #03A9F4; }
+        .news-card-type.гидромет { background: #607D8B; }
+        
+        .news-card-description {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+        
+        .news-card-date {
+            font-size: 12px;
+            color: #999;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+        
+        .news-card-location {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+        
+        .no-news {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+            font-size: 16px;
+            font-style: italic;
+        }
+        
+        .search-container {
+            position: relative;
+            width: 100%;
+            margin-bottom: 20px;
+            margin-top: 10px;
+        }
+        
+        .search-box {
+            display: flex;
+            align-items: center;
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(51, 51, 51, 0.5);
+            border-radius: 20px;
+            padding: 8px 12px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        
+        .search-input {
+            flex: 1;
+            border: none;
+            background: transparent;
+            padding: 8px;
+            font-size: 14px;
+            outline: none;
+            color: #333;
+        }
+        .search-input::placeholder { color: #666; }
+        
+        .search-button {
+            background: #2196F3;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 6px 15px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .search-button:hover { background: #1976D2; }
+        
+        .search-results {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: rgba(255, 255, 255, 0.95);
+            border: 2px solid #333;
+            border-radius: 8px;
+            max-height: 180px;
+            overflow-y: auto;
+            display: none;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            z-index: 1001;
+            margin-top: 5px;
+        }
+        .search-results.show { display: block; }
+        
+        .search-result-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #ddd;
+            font-size: 14px;
+        }
+        .search-result-item:hover { background: rgba(33, 150, 243, 0.1); }
+        .search-result-item:last-child { border-bottom: none; }
+        
+        .search-icon {
+            margin-right: 6px;
+            color: #2196F3;
+            font-size: 16px;
+        }
+        
+        .filter-container {
+            background: rgba(255, 255, 255, 0.9);
+            border: 2px solid rgba(51, 51, 51, 0.5);
+            border-radius: 15px;
+            padding: 15px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+            margin-bottom: 15px;
+        }
+        
+        .filter-title {
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 15px;
+            color: #333;
+            font-size: 16px;
+        }
+        
+        .filter-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+        }
+        
+        .filter-btn {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 18px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .filter-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .filter-btn.active {
+            background: #4CAF50;
+            color: white;
+            border-color: #4CAF50;
+        }
+        
+        .filter-btn.all {
+            background: #2196F3;
+            color: white;
+            border-color: #2196F3;
+        }
+        .filter-btn.all.active {
+            background: #1976D2;
+            border-color: #1976D2;
+        }
+        
+        .filter-btn[data-type="олени"] { color: #795548; border-color: #795548; }
+        .filter-btn[data-type="растения"] { color: #4CAF50; border-color: #4CAF50; }
+        .filter-btn[data-type="заморозки"] { color: #03A9F4; border-color: #03A9F4; }
+        .filter-btn[data-type="гидромет"] { color: #607D8B; border-color: #607D8B; }
+        
+        .object-filter-btn[data-object="rivers"] { color: #2196F3; border-color: #2196F3; }
+        .object-filter-btn[data-object="mountains"] { color: #795548; border-color: #795548; }
+        .object-filter-btn[data-object="forests"] { color: #4CAF50; border-color: #4CAF50; }
+        .object-filter-btn[data-object="lakes"] { color: #00BCD4; border-color: #00BCD4; }
+        
+        .object-filter-btn.active {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+        
+        .filter-icon {
+            font-size: 18px;
+        }
+
+        /* 👇 Прогнозы */
+        .forecast-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: center;
+            margin-bottom: 15px;
+        }
+        
+        .forecast-btn {
+            padding: 10px 16px;
+            border: 2px solid #ddd;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+            background: white;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        
+        .forecast-btn:hover {
+            transform: scale(1.03);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.2);
+        }
+        
+        .forecast-btn.active {
+            background: #FF9800;
+            color: white;
+            border-color: #FF9800;
+        }
+        
+        .forecast-btn[data-type="flood"] { color: #2196F3; border-color: #2196F3; }
+        .forecast-btn[data-type="pastures"] { color: #795548; border-color: #795548; }
+        .forecast-btn[data-type="spawning"] { color: #00BCD4; border-color: #00BCD4; }
+        
+        .forecast-periods {
+            display: none;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 10px;
+            padding-top: 10px;
+            border-top: 1px dashed #ddd;
+            flex-wrap: wrap;
+        }
+        
+        .forecast-periods.show {
+            display: flex;
+        }
+        
+        .period-btn {
+            padding: 8px 16px;
+            border: 2px solid #FF9800;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            background: white;
+            color: #FF9800;
+        }
+        
+        .period-btn:hover {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .period-btn.active {
+            background: #FF9800;
+            color: white;
+        }
+        
+        .forecast-cancel-btn {
+            margin-top: 10px;
+            padding: 8px 20px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: none;
+        }
+        
+        .forecast-cancel-btn.show {
+            display: block;
+        }
+        
+        .forecast-cancel-btn:hover {
+            background: #da190b;
+            transform: scale(1.03);
+        }
+        
+        .forecast-legend {
+            display: none;
+            margin-top: 15px;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        
+        .forecast-legend.show {
+            display: block;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin: 5px 0;
+        }
+        
+        .legend-dot {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            border: 2px solid #333;
+        }
+        
+        .legend-dot.green { background: #4CAF50; }
+        .legend-dot.orange { background: #FF9800; }
+        .legend-dot.red { background: #f44336; }
+
+        .forecast-location-search {
+            margin-top: 15px;
+            padding-top: 15px;
+            border-top: 1px solid #ddd;
+        }
+        
+        .forecast-location-search label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+            font-size: 14px;
+        }
+        
+        .location-search-box {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+        
+        .location-search-input {
+            flex: 1;
+            padding: 8px 12px;
+            border: 2px solid #ddd;
+            border-radius: 15px;
+            font-size: 13px;
+            outline: none;
+        }
+        
+        .location-search-input:focus {
+            border-color: #FF9800;
+        }
+        
+        .location-search-btn {
+            padding: 8px 16px;
+            background: #FF9800;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .location-search-btn:hover {
+            background: #F57C00;
+        }
+        
+        .location-gps-btn {
+            width: 100%;
+            padding: 8px 16px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        
+        .location-gps-btn:hover {
+            background: #45a049;
+        }
+        
+        .location-gps-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .location-results {
+            display: none;
+            margin-top: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: white;
+        }
+        
+        .location-results.show {
+            display: block;
+        }
+        
+        .location-result-item {
+            padding: 8px 12px;
+            cursor: pointer;
+            border-bottom: 1px solid #eee;
+            font-size: 13px;
+            transition: background 0.2s;
+        }
+        
+        .location-result-item:hover {
+            background: #f5f5f5;
+        }
+        
+        .location-result-item:last-child {
+            border-bottom: none;
+        }
+        
+        .location-status {
+            margin-top: 10px;
+            padding: 8px;
+            border-radius: 6px;
+            font-size: 12px;
+            display: none;
+        }
+        
+        .location-status.show {
+            display: block;
+        }
+        
+        .location-status.success {
+            background: #e8f5e9;
+            color: #2e7d32;
+        }
+        
+        .location-status.error {
+            background: #ffebee;
+            color: #c62828;
+        }
+        
+        .location-status.info {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+        .location-status.warning {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+        }
+        
+        .modal-overlay.show {
+            display: flex;
+        }
+        
+        .modal-window {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            max-width: 450px;
+            width: 90%;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        .modal-title {
+            font-size: 20px;
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 20px;
+            color: #333;
+        }
+        
+        .modal-buttons {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+        
+        .modal-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            padding: 15px 20px;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s;
+            background: white;
+        }
+        
+        .modal-btn:hover {
+            transform: scale(1.03);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        
+        .modal-btn[data-type="олени"] { color: #795548; border-color: #795548; }
+        .modal-btn[data-type="растения"] { color: #4CAF50; border-color: #4CAF50; }
+        .modal-btn[data-type="заморозки"] { color: #03A9F4; border-color: #03A9F4; }
+        .modal-btn[data-type="гидромет"] { color: #607D8B; border-color: #607D8B; }
+        
+        .modal-btn .emoji {
+            font-size: 24px;
+        }
+        
+        .modal-description {
+            margin-top: 15px;
+        }
+        
+        .modal-description label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+        
+        .modal-description input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+            box-sizing: border-box;
+        }
+        
+        .modal-description input:focus {
+            border-color: #2196F3;
+        }
+
+        .modal-photo {
+            margin-top: 15px;
+        }
+
+        .modal-photo label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            color: #333;
+        }
+
+        .modal-photo input {
+            width: 100%;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+        }
+
+        .photo-preview {
+            margin-top: 10px;
+            max-width: 100%;
+            max-height: 200px;
+            border-radius: 8px;
+            display: none;
+        }
+
+        .photo-preview.show {
+            display: block;
+        }
+        
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .modal-actions button {
+            flex: 1;
+            padding: 12px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .modal-actions .btn-cancel {
+            background: #f0f0f0;
+            color: #333;
+        }
+        .modal-actions .btn-cancel:hover {
+            background: #e0e0e0;
+        }
+        
+        .modal-actions .btn-confirm {
+            background: #4CAF50;
+            color: white;
+        }
+        .modal-actions .btn-confirm:hover {
+            background: #45a049;
+        }
+
+        .context-menu {
+            position: fixed;
+            background: white;
+            border: 2px solid #333;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            z-index: 3000;
+            display: none;
+            min-width: 320px;
+            max-width: 400px;
+            max-height: 500px;
+            overflow-y: auto;
+        }
+        
+        .context-menu.show {
+            display: block;
+        }
+        
+        .context-menu-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #ddd;
+            text-align: center;
+            position: sticky;
+            top: 0;
+            background: white;
+            z-index: 10;
+        }
+        
+        .publication-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #fafafa;
+        }
+        
+        .publication-item:last-child {
+            margin-bottom: 0;
+        }
+        
+        .publication-photo {
+            width: 100%;
+            height: 180px;
+            object-fit: cover;
+            border-radius: 6px;
+            margin-bottom: 8px;
+            background: #eee;
+        }
+        
+        .publication-info {
+            font-size: 13px;
+            color: #666;
+        }
+        
+        .publication-info strong {
+            color: #333;
+        }
+        
+        .publication-date {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+        }
+        
+        .no-publications {
+            text-align: center;
+            color: #999;
+            padding: 20px;
+            font-style: italic;
+        }
+
+        .context-menu::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .context-menu::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 4px;
+        }
+        
+        .context-menu::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+        
+        .context-menu::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        .context-menu {
+            scrollbar-width: thin;
+            scrollbar-color: #888 #f1f1f1;
+        }
+        
+        .sidebar-content::-webkit-scrollbar {
+            width: 6px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 3px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 3px;
+        }
+        
+        .sidebar-content::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+    </style>
+    <script src="https://api-maps.yandex.ru/2.1/?lang=ru_RU&apikey=101aa31b-50fc-459e-be62-58b015874a5a" type="text/javascript"></script>
+</head>
+<body>
+
+    <div class="main-layout">
+        
+        <div class="top-section">
+            
+            <div class="sidebar">
+                <div class="sidebar-content">
+                    <div class="search-container">
+                        <div class="search-results" id="searchResults"></div>
+                        <div class="search-box">
+                            <span class="search-icon">🔍</span>
+                            <input type="text" class="search-input" id="searchInput" placeholder="Город, река..." onkeypress="handleSearchKey(event)">
+                            <button class="search-button" onclick="searchLocation()">Найти</button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-container">
+                        <div class="filter-title">📊 Фильтр меток:</div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn all active" onclick="filterMarkers('all', this)" oncontextmenu="showPublications(event, 'all')">
+                                <span class="filter-icon">📋</span>
+                                <span>Все</span>
+                            </button>
+                            <button class="filter-btn" data-type="олени" onclick="filterMarkers('олени', this)" oncontextmenu="showPublications(event, 'олени')">
+                                <span class="filter-icon">🦌</span>
+                                <span>Миграция Оленей</span>
+                            </button>
+                            <button class="filter-btn" data-type="растения" onclick="filterMarkers('растения', this)" oncontextmenu="showPublications(event, 'растения')">
+                                <span class="filter-icon">🌿</span>
+                                <span>Растения</span>
+                            </button>
+                            <button class="filter-btn" data-type="заморозки" onclick="filterMarkers('заморозки', this)" oncontextmenu="showPublications(event, 'заморозки')">
+                                <span class="filter-icon">❄️</span>
+                                <span>Заморозки</span>
+                            </button>
+                            <button class="filter-btn" data-type="гидромет" onclick="filterMarkers('гидромет', this)" oncontextmenu="showPublications(event, 'гидромет')">
+                                <span class="filter-icon">☁️</span>
+                                <span>Гидромет</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-container">
+                        <div class="filter-title">🗺️ Объекты на карте:</div>
+                        <div class="filter-buttons">
+                            <button class="filter-btn object-filter-btn all active" onclick="toggleMapObject('all', this)">
+                                <span class="filter-icon">📍</span>
+                                <span>Все объекты</span>
+                            </button>
+                            <button class="filter-btn object-filter-btn" data-object="rivers" onclick="toggleMapObject('rivers', this)">
+                                <span class="filter-icon">🌊</span>
+                                <span>Реки</span>
+                            </button>
+                            <button class="filter-btn object-filter-btn" data-object="mountains" onclick="toggleMapObject('mountains', this)">
+                                <span class="filter-icon">🏔️</span>
+                                <span>Горы</span>
+                            </button>
+                            <button class="filter-btn object-filter-btn" data-object="forests" onclick="toggleMapObject('forests', this)">
+                                <span class="filter-icon">🌲</span>
+                                <span>Леса</span>
+                            </button>
+                            <button class="filter-btn object-filter-btn" data-object="lakes" onclick="toggleMapObject('lakes', this)">
+                                <span class="filter-icon">🏞️</span>
+                                <span>Озёра</span>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="filter-container" style="margin-bottom: 20px;">
+                        <div class="filter-title">🔮 Прогнозы:</div>
+                        
+                        <div class="forecast-options">
+                            <button class="forecast-btn" data-type="flood" onclick="selectForecast('flood', this)">
+                                <span>🌊</span>
+                                <span>Зоны затопления</span>
+                            </button>
+                            <button class="forecast-btn" data-type="pastures" onclick="selectForecast('pastures', this)">
+                                <span>🦌</span>
+                                <span>Оленьи пастбища</span>
+                            </button>
+                            <button class="forecast-btn" data-type="spawning" onclick="selectForecast('spawning', this)">
+                                <span>🐟</span>
+                                <span>Нерест рыбы</span>
+                            </button>
+                        </div>
+                        
+                        <div class="forecast-periods" id="forecastPeriods">
+                            <button class="period-btn" onclick="selectPeriod('2weeks', this)">📅 На 2 недели</button>
+                            <button class="period-btn" onclick="selectPeriod('3weeks', this)">📅 На 3 недели</button>
+                            <button class="forecast-cancel-btn" id="forecastCancelBtn" onclick="cancelForecast()">❌ Отмена</button>
+                        </div>
+                        
+                        <div class="forecast-legend" id="forecastLegend"></div>
+                        
+                        <div class="forecast-location-search">
+                            <label>📍 Укажите ваше местоположение:</label>
+                            <div class="location-search-box">
+                                <input type="text" class="location-search-input" id="locationSearchInput" placeholder="Например: Нерюнгри, Якутск...">
+                                <button class="location-search-btn" onclick="searchUserLocation()">🔍</button>
+                            </div>
+                            <button class="location-gps-btn" id="gpsBtn" onclick="getGPSLocation()">
+                                <span>📡</span>
+                                <span>Моё местоположение (GPS)</span>
+                            </button>
+                            <div class="location-results" id="locationResults"></div>
+                            <div class="location-status" id="locationStatus"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="map-section">
+                <div id="map">
+                    <!-- 👇 GPS КНОПКА НА КАРТЕ (под кнопкой Слои) -->
+                    <button class="map-gps-button" id="mapGpsBtn" onclick="findMeOnMap()">
+                        <span>📍</span>
+                        <span>Я здесь</span>
+                    </button>
+                    <div class="map-gps-status" id="mapGpsStatus"></div>
+                </div>
+                
+                <div class="news-feed-container">
+                    <h2 class="news-feed-title">
+                        📰 Лента новостей
+                        <span class="news-feed-count" id="newsCount">0 публикаций</span>
+                    </h2>
+                    <div class="news-feed-grid" id="newsFeedGrid"></div>
+                </div>
+            </div>
+            
+        </div>
+        
+    </div>
+
+    <div class="modal-overlay" id="markerModal">
+        <div class="modal-window">
+            <div class="modal-title">📍 Выберите тип метки:</div>
+            
+            <div class="modal-buttons">
+                <button class="modal-btn" data-type="олени" onclick="selectMarkerType('олени')">
+                    <span class="emoji">🦌</span>
+                    <span>Олени</span>
+                </button>
+                <button class="modal-btn" data-type="растения" onclick="selectMarkerType('растения')">
+                    <span class="emoji">🌿</span>
+                    <span>Растения</span>
+                </button>
+                <button class="modal-btn" data-type="заморозки" onclick="selectMarkerType('заморозки')">
+                    <span class="emoji">❄️</span>
+                    <span>Заморозки</span>
+                </button>
+                <button class="modal-btn" data-type="гидромет" onclick="selectMarkerType('гидромет')">
+                    <span class="emoji">☁️</span>
+                    <span>Гидромет</span>
+                </button>
+            </div>
+            
+            <div class="modal-description">
+                <label>📝 Описание (по желанию):</label>
+                <input type="text" id="markerDescription" placeholder="Например: Сильная метель...">
+            </div>
+
+            <div class="modal-photo">
+                <label>📷 Фото (необязательно):</label>
+                <input type="file" id="markerPhoto" accept="image/*" onchange="previewPhoto()">
+                <img id="photoPreview" class="photo-preview" alt="Предпросмотр">
+            </div>
+            
+            <div class="modal-actions">
+                <button class="btn-cancel" onclick="closeModal()">Отмена</button>
+                <button class="btn-confirm" onclick="confirmMarker()">✅ Добавить метку</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="context-menu" id="contextMenu">
+        <div class="context-menu-title" id="contextMenuTitle">📷 Последние публикации</div>
+        <div id="publicationsList"></div>
+    </div>
+
+    <script>
+        let myMap;
+        let allMarks = [];
+        let currentFilter = 'all';
+        let selectedMarkerType = null;
+        let pendingCoords = null;
+        let currentPhotoData = null;
+        
+        let selectedForecast = null;
+        let selectedPeriod = null;
+        let forecastMarkers = [];
+        let userLocation = null;
+        
+        let mapObjects = {
+            rivers: [],
+            mountains: [],
+            forests: [],
+            lakes: []
+        };
+        let activeMapObjects = new Set(['all']);
+
+        const MARKER_ICONS = {
+            'олени': { emoji: '🦌', color: '#795548', label: 'Миграция Оленей' },
+            'растения': { emoji: '🌿', color: '#4CAF50', label: 'Растения' },
+            'заморозки': { emoji: '❄️', color: '#03A9F4', label: 'Заморозки' },
+            'гидромет': { emoji: '☁️', color: '#607D8B', label: 'Гидромет' }
+        };
+
+        const OBJECTS_DATA = {
+            rivers: [
+                { name: 'Река Лена', coords: [64.0, 127.0], zoom: 6, description: 'Крупнейшая река Якутии и Сибири, длина 4400 км' },
+                { name: 'Река Алдан', coords: [63.5, 132.0], zoom: 6, description: 'Крупнейший приток Лены, длина 2273 км' },
+                { name: 'Река Вилюй', coords: [63.0, 115.0], zoom: 6, description: 'Крупный приток Лены, длина 2650 км' },
+                { name: 'Река Колыма', coords: [65.0, 155.0], zoom: 6, description: 'Река на востоке Якутии, длина 2129 км' },
+                { name: 'Река Индигирка', coords: [67.0, 145.0], zoom: 6, description: 'Река на северо-востоке, длина 1726 км' },
+                { name: 'Река Оленёк', coords: [69.0, 115.0], zoom: 6, description: 'Река на севере Якутии, длина 2292 км' },
+                { name: 'Река Анабар', coords: [71.0, 110.0], zoom: 6, description: 'Река на севере, впадает в море Лаптевых' },
+                { name: 'Река Яна', coords: [69.5, 135.0], zoom: 6, description: 'Река на северо-востоке, длина 872 км' },
+                { name: 'Река Амга', coords: [61.5, 131.0], zoom: 7, description: 'Приток Алдана, длина 1462 км' },
+                { name: 'Река Тимптон', coords: [56.9, 125.2], zoom: 8, description: 'Приток Алдана near Нерюнгри' },
+                { name: 'Река Чульман', coords: [56.8, 124.9], zoom: 9, description: 'Приток Тимптона, near Нерюнгри' },
+                { name: 'Река Марха', coords: [62.5, 115.0], zoom: 7, description: 'Приток Вилюя' },
+                { name: 'Река Тюнг', coords: [63.5, 118.0], zoom: 7, description: 'Приток Вилюя' },
+                { name: 'Река Мааян', coords: [61.0, 128.0], zoom: 7, description: 'Приток Алдана' },
+                { name: 'Река Учур', coords: [60.5, 135.0], zoom: 7, description: 'Приток Алдана, длина 812 км' },
+                { name: 'Река Гонам', coords: [59.0, 136.0], zoom: 7, description: 'Приток Учур' },
+                { name: 'Река Сутаам', coords: [56.5, 125.5], zoom: 9, description: 'Приток Чульмана' },
+                { name: 'Река Иман', coords: [56.7, 124.5], zoom: 10, description: 'Малая река near Нерюнгри' },
+                { name: 'Река Дядики', coords: [56.9, 124.7], zoom: 10, description: 'Река в Нерюнгринском районе' },
+                { name: 'Река Беркакит', coords: [56.6, 124.8], zoom: 10, description: 'Река near посёлка Беркакит' },
+                { name: 'Река Силигинка', coords: [56.4, 125.2], zoom: 10, description: 'Малая река near Нерюнгри' },
+                { name: 'Река Аллах-Юнь', coords: [58.0, 127.0], zoom: 8, description: 'Приток Алдана' },
+                { name: 'Река Томпо', coords: [63.0, 140.0], zoom: 7, description: 'Приток Алдана' },
+                { name: 'Река Кюенга', coords: [57.5, 126.5], zoom: 8, description: 'Река в Алданском районе' },
+                { name: 'Река Татта', coords: [62.0, 130.0], zoom: 7, description: 'Приток Алдана' },
+                { name: 'Река Синяя', coords: [61.0, 127.0], zoom: 7, description: 'Приток Лены' },
+                { name: 'Река Буотама', coords: [62.5, 128.0], zoom: 7, description: 'Приток Лены' }
+            ],
+            mountains: [
+                { name: 'Хребет Сунтар-Хаята', coords: [62.5, 144.0], zoom: 6, description: 'Высочайший хребет Якутии, гора Мус-Хая 3011 м' },
+                { name: 'Верхоянский хребет', coords: [66.0, 135.0], zoom: 6, description: 'Горный хребет на востоке, длина 900 км' },
+                { name: 'Хребет Черского', coords: [67.0, 148.0], zoom: 6, description: 'Горная система на северо-востоке' },
+                { name: 'Становое нагорье', coords: [57.0, 124.0], zoom: 7, description: 'Нагорье на юге Якутии' },
+                { name: 'Хребет Кодар', coords: [57.5, 120.0], zoom: 7, description: 'Горный хребет на юго-западе' },
+                { name: 'Патомское нагорье', coords: [58.5, 115.0], zoom: 7, description: 'Нагорье на западе Якутии' },
+                { name: 'Анабарское плато', coords: [71.0, 105.0], zoom: 6, description: 'Плато на севере Якутии' },
+                { name: 'Путоранское плато', coords: [69.0, 95.0], zoom: 6, description: 'Плато на северо-западе' },
+                { name: 'Хребет Сетте-Дабан', coords: [63.5, 137.0], zoom: 7, description: 'Хребет на юго-востоке' },
+                { name: 'Улахан-Чистай', coords: [65.0, 147.0], zoom: 7, description: 'Высшая точка хребта Черского, гора Победа 3147 м' }
+            ],
+            forests: [
+                { name: 'Южная тайга', coords: [56.5, 124.5], zoom: 8, description: 'Лиственничные леса near Нерюнгри' },
+                { name: 'Центральная тайга', coords: [62.0, 130.0], zoom: 7, description: 'Средняя тайга в центре Якутии' },
+                { name: 'Северная тайга', coords: [65.0, 125.0], zoom: 7, description: 'Северотаёжная зона' },
+                { name: 'Вилюйская тайга', coords: [62.5, 115.0], zoom: 7, description: 'Таёжные леса в бассейне Вилюя' },
+                { name: 'Алданская тайга', coords: [61.0, 132.0], zoom: 7, description: 'Леса в бассейне Алдана' },
+                { name: 'Ленская тайга', coords: [64.0, 127.0], zoom: 7, description: 'Таёжные леса вдоль Лены' },
+                { name: 'Колымская тайга', coords: [64.0, 155.0], zoom: 7, description: 'Леса в бассейне Колымы' },
+                { name: 'Индигирская тайга', coords: [66.0, 145.0], zoom: 7, description: 'Леса в бассейне Индигирки' }
+            ],
+            lakes: [
+                { name: 'Озеро Лабынкыр', coords: [63.2, 146.5], zoom: 8, description: 'Загадочное озеро с легендой о чудовище' },
+                { name: 'Озеро Неджели', coords: [62.8, 133.5], zoom: 8, description: 'Крупное озеро в Алданском районе' },
+                { name: 'Озеро Момо', coords: [66.5, 143.0], zoom: 8, description: 'Озеро в Момском районе' },
+                { name: 'Озеро Большое Токо', coords: [56.5, 125.0], zoom: 9, description: 'Озеро near Нерюнгри' },
+                { name: 'Озеро Малое Токо', coords: [56.6, 125.1], zoom: 9, description: 'Малое озеро near Нерюнгри' },
+                { name: 'Озеро Нерюнгринское', coords: [56.65, 124.75], zoom: 10, description: 'Озеро в черте города' },
+                { name: 'Озеро Беркакит', coords: [56.6, 124.85], zoom: 10, description: 'Озеро near посёлка Беркакит' },
+                { name: 'Озеро Чульман', coords: [56.8, 124.95], zoom: 10, description: 'Озеро near посёлка Чульман' },
+                { name: 'Озеро Иман', coords: [56.7, 124.55], zoom: 10, description: 'Малое озеро near реки Иман' },
+                { name: 'Озеро Силиги', coords: [56.4, 125.25], zoom: 10, description: 'Озеро near реки Силигинка' },
+                { name: 'Озеро Дядики', coords: [56.9, 124.75], zoom: 10, description: 'Озеро near реки Дядики' },
+                { name: 'Озеро Сутаам', coords: [56.5, 125.55], zoom: 10, description: 'Озеро near реки Сутаам' },
+                { name: 'Озеро Бустах', coords: [69.0, 115.0], zoom: 8, description: 'Озеро на севере Якутии' },
+                { name: 'Озеро Енджей', coords: [68.5, 135.0], zoom: 8, description: 'Озеро на северо-востоке' },
+                { name: 'Озеро Нерпичье', coords: [67.0, 155.0], zoom: 8, description: 'Озеро near Колымы' },
+                { name: 'Озеро Улахан-Кюёль', coords: [63.5, 128.0], zoom: 8, description: 'Крупное озеро в центре Якутии' },
+                { name: 'Озеро Моготоево', coords: [62.0, 129.0], zoom: 8, description: 'Озеро в Алданском районе' },
+                { name: 'Озеро Кюенга', coords: [57.5, 126.6], zoom: 9, description: 'Озеро в Алданском районе' },
+                { name: 'Озеро Аллах-Юнь', coords: [58.0, 127.1], zoom: 9, description: 'Озеро near реки Аллах-Юнь' }
+            ]
+        };
+
+        const OBJECT_ZOOM_SETTINGS = {
+            rivers: { zoom: 5, center: [62.0, 130.0] },
+            mountains: { zoom: 5, center: [64.0, 135.0] },
+            forests: { zoom: 6, center: [62.0, 128.0] },
+            lakes: { zoom: 6, center: [60.0, 130.0] },
+            all: { zoom: 5, center: [64.0, 127.0] }
+        };
+
+        const FORECAST_MOCK_DATA = {
+            pastures: {
+                good: [[56.8, 124.5], [57.2, 125.0], [56.5, 123.8], [57.5, 126.2], [56.3, 124.0]],
+                bad: [[56.7, 124.8], [57.4, 125.3], [56.4, 124.3], [57.6, 126.5], [56.2, 123.9]]
+            },
+            flood: {
+                minor: [[64.2, 127.5], [63.8, 126.8], [64.5, 128.0], [63.5, 127.2], [64.0, 126.5]],
+                moderate: [[64.0, 127.2], [63.9, 127.0], [64.4, 127.8], [63.6, 126.7], [64.2, 126.9]],
+                severe: [[64.1, 127.3], [63.85, 127.1], [64.35, 127.7], [63.65, 126.85], [64.15, 127.05]]
+            },
+            spawning: {
+                good: [[61.5, 131.0], [62.0, 132.0], [61.8, 130.5], [62.2, 131.5], [61.3, 131.8]],
+                bad: [[61.6, 131.2], [62.1, 131.8], [61.9, 130.7], [62.3, 131.7], [61.2, 131.6]]
+            }
+        };
+
+        const LEGEND_CONFIG = {
+            flood: [
+                { color: 'green', text: '🟢 Небольшое затопление' },
+                { color: 'orange', text: '🟠 Плохо проходимая' },
+                { color: 'red', text: '🔴 Вообще не пройти' }
+            ],
+            pastures: [
+                { color: 'green', text: '🟢 Благоприятные условия' },
+                { color: 'red', text: '🔴 Неблагоприятные условия' }
+            ],
+            spawning: [
+                { color: 'green', text: '🟢 Благоприятные условия' },
+                { color: 'red', text: '🔴 Неблагоприятные условия' }
+            ]
+        };
+
+        const YAKUTIA_BOUNDS = {
+            north: 73.0,
+            south: 55.0,
+            west: 105.0,
+            east: 160.0
+        };
+
+        ymaps.ready(init);
+
+        function init() {
+            myMap = new ymaps.Map("map", {
+                center: [64.0, 127.0],
+                zoom: 5,
+                controls: ['zoomControl', 'typeSelector']
+            });
+
+            addMapObjectsToMap();
+
+            myMap.events.add('click', function (e) {
+                document.getElementById('searchResults').classList.remove('show');
+                let coords = e.get('coords');
+                openMarkerModal(coords);
+            });
+            
+            loadNewsFeed();
+        }
+
+        function addMapObjectsToMap() {
+            OBJECTS_DATA.rivers.forEach(obj => {
+                const placemark = new ymaps.Placemark(obj.coords, {
+                    hintContent: obj.name,
+                    balloonContent: `<div style="padding:10px;min-width:250px;">
+                        <h4 style="margin:0 0 8px 0;color:#2196F3;">🌊 ${obj.name}</h4>
+                        <p style="margin:5px 0;color:#666;font-size:13px;">${obj.description}</p>
+                        <p style="margin:5px 0;color:#999;font-size:11px;">📍 ${obj.coords[0].toFixed(4)}, ${obj.coords[1].toFixed(4)}</p>
+                    </div>`
+                }, {
+                    preset: 'islands#dotIcon',
+                    iconColor: '#2196F3'
+                });
+                mapObjects.rivers.push(placemark);
+            });
+            
+            OBJECTS_DATA.mountains.forEach(obj => {
+                const placemark = new ymaps.Placemark(obj.coords, {
+                    hintContent: obj.name,
+                    balloonContent: `<div style="padding:10px;min-width:250px;">
+                        <h4 style="margin:0 0 8px 0;color:#795548;">🏔️ ${obj.name}</h4>
+                        <p style="margin:5px 0;color:#666;font-size:13px;">${obj.description}</p>
+                        <p style="margin:5px 0;color:#999;font-size:11px;">📍 ${obj.coords[0].toFixed(4)}, ${obj.coords[1].toFixed(4)}</p>
+                    </div>`
+                }, {
+                    preset: 'islands#dotIcon',
+                    iconColor: '#795548'
+                });
+                mapObjects.mountains.push(placemark);
+            });
+            
+            OBJECTS_DATA.forests.forEach(obj => {
+                const placemark = new ymaps.Placemark(obj.coords, {
+                    hintContent: obj.name,
+                    balloonContent: `<div style="padding:10px;min-width:250px;">
+                        <h4 style="margin:0 0 8px 0;color:#4CAF50;">🌲 ${obj.name}</h4>
+                        <p style="margin:5px 0;color:#666;font-size:13px;">${obj.description}</p>
+                        <p style="margin:5px 0;color:#999;font-size:11px;">📍 ${obj.coords[0].toFixed(4)}, ${obj.coords[1].toFixed(4)}</p>
+                    </div>`
+                }, {
+                    preset: 'islands#dotIcon',
+                    iconColor: '#4CAF50'
+                });
+                mapObjects.forests.push(placemark);
+            });
+            
+            OBJECTS_DATA.lakes.forEach(obj => {
+                const placemark = new ymaps.Placemark(obj.coords, {
+                    hintContent: obj.name,
+                    balloonContent: `<div style="padding:10px;min-width:250px;">
+                        <h4 style="margin:0 0 8px 0;color:#00BCD4;">🏞️ ${obj.name}</h4>
+                        <p style="margin:5px 0;color:#666;font-size:13px;">${obj.description}</p>
+                        <p style="margin:5px 0;color:#999;font-size:11px;">📍 ${obj.coords[0].toFixed(4)}, ${obj.coords[1].toFixed(4)}</p>
+                    </div>`
+                }, {
+                    preset: 'islands#dotIcon',
+                    iconColor: '#00BCD4'
+                });
+                mapObjects.lakes.push(placemark);
+            });
+        }
+
+        function loadNewsFeed() {
+            const publications = JSON.parse(localStorage.getItem('markerPublications') || '[]');
+            const newsGrid = document.getElementById('newsFeedGrid');
+            const newsCount = document.getElementById('newsCount');
+            
+            const photosOnly = publications.filter(pub => pub.photo);
+            newsCount.textContent = `${photosOnly.length} публикаций`;
+            
+            if (photosOnly.length === 0) {
+                newsGrid.innerHTML = '<div class="no-news">📭 Пока нет публикаций с фото. Будьте первым!</div>';
+                return;
+            }
+            
+            photosOnly.sort((a, b) => b.timestamp - a.timestamp);
+            
+            newsGrid.innerHTML = photosOnly.map(pub => {
+                const iconConfig = MARKER_ICONS[pub.markerType] || MARKER_ICONS['олени'];
+                const date = new Date(pub.timestamp);
+                const dateStr = date.toLocaleDateString('ru-RU') + ' ' + date.toLocaleTimeString('ru-RU', {hour: '2-digit', minute:'2-digit'});
+                
+                return `
+                    <div class="news-card">
+                        <img src="${pub.photo}" class="news-card-image" alt="Фото">
+                        <div class="news-card-content">
+                            <span class="news-card-type ${pub.markerType}">${iconConfig.emoji} ${iconConfig.label}</span>
+                            <div class="news-card-description">${pub.description || 'Без описания'}</div>
+                            <div class="news-card-date">🕐 ${dateStr}</div>
+                            <div class="news-card-location">📍 ${pub.lat ? pub.lat.toFixed(4) + ', ' + pub.lon.toFixed(4) : 'Координаты не указаны'}</div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        // 👇 GPS КНОПКА НА КАРТЕ (под кнопкой Слои)
+        function findMeOnMap() {
+            const gpsBtn = document.getElementById('mapGpsBtn');
+            const gpsStatus = document.getElementById('mapGpsStatus');
+            
+            if (!navigator.geolocation) {
+                gpsStatus.textContent = '❌ Геолокация не поддерживается';
+                gpsStatus.className = 'map-gps-status show error';
+                return;
+            }
+            
+            gpsBtn.disabled = true;
+            gpsBtn.innerHTML = '<span>⏳</span><span>Ищем...</span>';
+            gpsStatus.textContent = '📡 Запрос разрешения...';
+            gpsStatus.className = 'map-gps-status show info';
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const coords = [position.coords.latitude, position.coords.longitude];
+                    const accuracy = position.coords.accuracy;
+                    
+                    // Центрируем карту
+                    myMap.setCenter(coords, 14, { duration: 1000 });
+                    
+                    // Добавляем временную метку
+                    const userPlacemark = new ymaps.Placemark(coords, {
+                        hintContent: '📍 Вы здесь',
+                        balloonContent: `<b>📍 Ваше местоположение</b><br>Точность: ~${Math.round(accuracy)}м`
+                    }, {
+                        preset: 'islands#redCircleDotIcon'
+                    });
+                    
+                    myMap.geoObjects.add(userPlacemark);
+                    
+                    gpsStatus.textContent = `✅ Найдено! Точность: ~${Math.round(accuracy)}м`;
+                    gpsStatus.className = 'map-gps-status show success';
+                    
+                    // Скрываем статус через 5 секунд
+                    setTimeout(() => {
+                        gpsStatus.classList.remove('show');
+                    }, 5000);
+                    
+                    // Удаляем метку через 10 секунд
+                    setTimeout(() => {
+                        myMap.geoObjects.remove(userPlacemark);
+                    }, 10000);
+                    
+                    gpsBtn.disabled = false;
+                    gpsBtn.innerHTML = '<span>📍</span><span>Я здесь</span>';
+                },
+                function(error) {
+                    let errorMsg = '❌ ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED:
+                            errorMsg += 'Доступ запрещён';
+                            break;
+                        case error.POSITION_UNAVAILABLE:
+                            errorMsg += 'Информация недоступна';
+                            break;
+                        case error.TIMEOUT:
+                            errorMsg += 'Время ожидания истекло';
+                            break;
+                        default:
+                            errorMsg += 'Ошибка';
+                    }
+                    
+                    gpsStatus.textContent = errorMsg;
+                    gpsStatus.className = 'map-gps-status show error';
+                    gpsBtn.disabled = false;
+                    gpsBtn.innerHTML = '<span>📍</span><span>Я здесь</span>';
+                    
+                    setTimeout(() => gpsStatus.classList.remove('show'), 5000);
+                },
+                {
+                    enableHighAccuracy: true,
+                    timeout: 30000,
+                    maximumAge: 0
+                }
+            );
+        }
+
+        function selectForecast(type, button) {
+            document.querySelectorAll('.forecast-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            button.classList.add('active');
+            selectedPeriod = null;
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            
+            document.getElementById('forecastPeriods').classList.add('show');
+            document.getElementById('forecastCancelBtn').classList.add('show');
+            document.getElementById('forecastLegend').classList.remove('show');
+            document.getElementById('forecastLegend').innerHTML = '';
+            
+            selectedForecast = type;
+            clearForecastMarkers();
+            showLocationStatus('info', '📍 Выберите период или укажите местоположение');
+        }
+        
+        function selectPeriod(period, button) {
+            document.querySelectorAll('.period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            button.classList.add('active');
+            selectedPeriod = period;
+            showLegend();
+            showForecastIndicators();
+            
+            const forecastLabels = { 'flood': 'Зоны затопления', 'pastures': 'Оленьи пастбища', 'spawning': 'Нерест рыбы' };
+            const periodLabels = { '2weeks': '2 недели', '3weeks': '3 недели' };
+            
+            showLocationStatus('success', `✅ ${forecastLabels[selectedForecast]} на ${periodLabels[period]}`);
+        }
+        
+        function showLegend() {
+            const legendDiv = document.getElementById('forecastLegend');
+            const config = LEGEND_CONFIG[selectedForecast];
+            if (!config) return;
+            
+            legendDiv.innerHTML = config.map(item => `
+                <div class="legend-item">
+                    <div class="legend-dot ${item.color}"></div>
+                    <span>${item.text}</span>
+                </div>
+            `).join('');
+            legendDiv.classList.add('show');
+        }
+        
+        function cancelForecast() {
+            selectedForecast = null;
+            selectedPeriod = null;
+            document.querySelectorAll('.forecast-btn, .period-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.getElementById('forecastPeriods').classList.remove('show');
+            document.getElementById('forecastCancelBtn').classList.remove('show');
+            document.getElementById('forecastLegend').classList.remove('show');
+            document.getElementById('forecastLegend').innerHTML = '';
+            clearForecastMarkers();
+            hideLocationStatus();
+        }
+        
+        function showForecastIndicators() {
+            if (!selectedForecast || !selectedPeriod) return;
+            clearForecastMarkers();
+            
+            const baseCoords = userLocation || [64.0, 127.0];
+            
+            if (selectedForecast === 'flood') {
+                const data = FORECAST_MOCK_DATA.flood;
+                if (data.minor) {
+                    generateForecastMarkers(baseCoords, 0.5, 8).forEach(coords => {
+                        const placemark = new ymaps.Placemark(coords, {
+                            hintContent: '🟢 Небольшое затопление',
+                            balloonContent: '<b>🟢 Небольшое затопление</b><br>Можно пройти с осторожностью'
+                        }, { preset: 'islands#circleDotIcon', iconColor: '#4CAF50' });
+                        forecastMarkers.push(placemark);
+                        myMap.geoObjects.add(placemark);
+                    });
+                }
+                if (data.moderate) {
+                    generateForecastMarkers(baseCoords, 0.5, 8).forEach(coords => {
+                        const placemark = new ymaps.Placemark(coords, {
+                            hintContent: '🟠 Плохо проходимая',
+                            balloonContent: '<b>🟠 Плохо проходимая зона</b><br>Требуется спецтехника'
+                        }, { preset: 'islands#circleDotIcon', iconColor: '#FF9800' });
+                        forecastMarkers.push(placemark);
+                        myMap.geoObjects.add(placemark);
+                    });
+                }
+                if (data.severe) {
+                    generateForecastMarkers(baseCoords, 0.5, 8).forEach(coords => {
+                        const placemark = new ymaps.Placemark(coords, {
+                            hintContent: '🔴 Вообще не пройти',
+                            balloonContent: '<b>🔴 Опасная зона!</b><br>Проход невозможен'
+                        }, { preset: 'islands#circleDotIcon', iconColor: '#f44336' });
+                        forecastMarkers.push(placemark);
+                        myMap.geoObjects.add(placemark);
+                    });
+                }
+            } else {
+                const data = FORECAST_MOCK_DATA[selectedForecast];
+                if (data.good) {
+                    generateForecastMarkers(baseCoords, 0.5, 10).forEach(coords => {
+                        const placemark = new ymaps.Placemark(coords, {
+                            hintContent: '🟢 Благоприятные условия',
+                            balloonContent: '<b>🟢 Благоприятные условия</b><br>Рекомендуется'
+                        }, { preset: 'islands#circleDotIcon', iconColor: '#4CAF50' });
+                        forecastMarkers.push(placemark);
+                        myMap.geoObjects.add(placemark);
+                    });
+                }
+                if (data.bad) {
+                    generateForecastMarkers(baseCoords, 0.5, 10).forEach(coords => {
+                        const placemark = new ymaps.Placemark(coords, {
+                            hintContent: '🔴 Неблагоприятные условия',
+                            balloonContent: '<b>🔴 Неблагоприятные условия</b><br>Не рекомендуется'
+                        }, { preset: 'islands#circleDotIcon', iconColor: '#f44336' });
+                        forecastMarkers.push(placemark);
+                        myMap.geoObjects.add(placemark);
+                    });
+                }
+            }
+            
+            myMap.setCenter(baseCoords, 8, { duration: 1000 });
+        }
+        
+        function generateForecastMarkers(center, radius, count) {
+            const markers = [];
+            for (let i = 0; i < count; i++) {
+                markers.push([
+                    center[0] + (Math.random() - 0.5) * radius,
+                    center[1] + (Math.random() - 0.5) * radius
+                ]);
+            }
+            return markers;
+        }
+        
+        function clearForecastMarkers() {
+            forecastMarkers.forEach(mark => myMap.geoObjects.remove(mark));
+            forecastMarkers = [];
+        }
+        
+        function searchUserLocation() {
+            const query = document.getElementById('locationSearchInput').value.trim();
+            const resultsDiv = document.getElementById('locationResults');
+            
+            if (!query) {
+                showLocationStatus('error', '⚠️ Введите название');
+                return;
+            }
+            
+            showLocationStatus('info', '🔍 Ищем...');
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('show');
+            
+            ymaps.geocode(query, {
+                results: 5,
+                boundedBy: [[YAKUTIA_BOUNDS.south, YAKUTIA_BOUNDS.west], [YAKUTIA_BOUNDS.north, YAKUTIA_BOUNDS.east]]
+            }).then(function (res) {
+                const geoObjects = res.geoObjects;
+                
+                if (geoObjects.length === 0) {
+                    showLocationStatus('error', '❌ Ничего не найдено в Якутии');
+                    return;
+                }
+                
+                geoObjects.each(function (obj) {
+                    const name = obj.properties.get('name') || obj.getAddressLine();
+                    const coords = obj.geometry.getCoordinates();
+                    
+                    if (!isInYakutia(coords)) return;
+                    
+                    const item = document.createElement('div');
+                    item.className = 'location-result-item';
+                    item.textContent = `📍 ${name}`;
+                    item.onclick = function() {
+                        setUserLocation(coords, name);
+                        resultsDiv.classList.remove('show');
+                    };
+                    resultsDiv.appendChild(item);
+                });
+                
+                if (resultsDiv.innerHTML === '') {
+                    showLocationStatus('error', '❌ За пределами Якутии');
+                    return;
+                }
+                
+                resultsDiv.classList.add('show');
+                hideLocationStatus();
+            }).catch(function(err) {
+                showLocationStatus('error', '❌ Ошибка: ' + err.message);
+            });
+        }
+        
+        function isInYakutia(coords) {
+            return coords[0] >= YAKUTIA_BOUNDS.south && coords[0] <= YAKUTIA_BOUNDS.north &&
+                   coords[1] >= YAKUTIA_BOUNDS.west && coords[1] <= YAKUTIA_BOUNDS.east;
+        }
+        
+        function getGPSLocation() {
+            const gpsBtn = document.getElementById('gpsBtn');
+            
+            if (!navigator.geolocation) {
+                showLocationStatus('error', '❌ Геолокация не поддерживается');
+                return;
+            }
+            
+            gpsBtn.disabled = true;
+            gpsBtn.innerHTML = '<span>⏳</span><span>Определяем...</span>';
+            showLocationStatus('info', '📡 Запрос разрешения...');
+            
+            navigator.geolocation.getCurrentPosition(
+                function(position) {
+                    const coords = [position.coords.latitude, position.coords.longitude];
+                    const accuracy = position.coords.accuracy;
+                    
+                    if (!isInYakutia(coords)) {
+                        showLocationStatus('warning', '⚠️ Вы за пределами Якутии');
+                        gpsBtn.disabled = false;
+                        gpsBtn.innerHTML = '<span>📡</span><span>Моё местоположение (GPS)</span>';
+                        return;
+                    }
+                    
+                    setUserLocation(coords, 'Ваше местоположение');
+                    gpsBtn.disabled = false;
+                    gpsBtn.innerHTML = '<span>📡</span><span>Моё местоположение (GPS)</span>';
+                    showLocationStatus('success', `✅ Точность: ~${Math.round(accuracy)}м`);
+                },
+                function(error) {
+                    let errorMsg = '❌ ';
+                    switch(error.code) {
+                        case error.PERMISSION_DENIED: errorMsg += 'Доступ запрещён'; break;
+                        case error.POSITION_UNAVAILABLE: errorMsg += 'Информация недоступна'; break;
+                        case error.TIMEOUT: errorMsg += 'Время ожидания истекло'; break;
+                        default: errorMsg += 'Ошибка';
+                    }
+                    showLocationStatus('error', errorMsg);
+                    gpsBtn.disabled = false;
+                    gpsBtn.innerHTML = '<span>📡</span><span>Моё местоположение (GPS)</span>';
+                },
+                { enableHighAccuracy: true, timeout: 30000, maximumAge: 0 }
+            );
+            
+            setTimeout(() => {
+                if (gpsBtn.disabled) {
+                    showLocationStatus('info', '📡 Всё ещё определяем...');
+                }
+            }, 5000);
+        }
+        
+        function setUserLocation(coords, name) {
+            userLocation = coords;
+            showLocationStatus('success', `✅ ${name} (${coords[0].toFixed(4)}, ${coords[1].toFixed(4)})`);
+            
+            if (selectedForecast && selectedPeriod) {
+                showForecastIndicators();
+            }
+            
+            const userPlacemark = new ymaps.Placemark(coords, {
+                hintContent: '📍 Вы здесь',
+                balloonContent: `<b>📍 ${name}</b>`
+            }, { preset: 'islands#redCircleDotIcon' });
+            
+            myMap.geoObjects.add(userPlacemark);
+            myMap.setCenter(coords, 10, { duration: 1000 });
+            
+            setTimeout(() => myMap.geoObjects.remove(userPlacemark), 10000);
+        }
+        
+        function showLocationStatus(type, message) {
+            const statusDiv = document.getElementById('locationStatus');
+            statusDiv.innerHTML = message;
+            statusDiv.className = `location-status show ${type}`;
+        }
+        
+        function hideLocationStatus() {
+            document.getElementById('locationStatus').classList.remove('show');
+        }
+
+        function showPublications(event, filterType) {
+            event.preventDefault();
+            const contextMenu = document.getElementById('contextMenu');
+            const publicationsList = document.getElementById('publicationsList');
+            const contextMenuTitle = document.getElementById('contextMenuTitle');
+            
+            const allPublications = JSON.parse(localStorage.getItem('markerPublications') || '[]');
+            let filteredPubs = allPublications.filter(pub => filterType === 'all' ? true : pub.markerType === filterType);
+            filteredPubs.sort((a, b) => b.timestamp - a.timestamp).slice(0, 5);
+            
+            const typeLabels = { 'all': 'Все', 'олени': '🦌 Олени', 'растения': '🌿 Растения', 'заморозки': '❄️ Заморозки', 'гидромет': '☁️ Гидромет' };
+            contextMenuTitle.textContent = `📷 ${typeLabels[filterType]} (${filteredPubs.length})`;
+            
+            if (filteredPubs.length === 0) {
+                publicationsList.innerHTML = '<div class="no-publications">Нет публикаций 😔</div>';
+            } else {
+                publicationsList.innerHTML = filteredPubs.map(pub => `
+                    <div class="publication-item">
+                        ${pub.photo ? `<img src="${pub.photo}" class="publication-photo" alt="Фото">` : ''}
+                        <div class="publication-info"><strong>${pub.description || 'Без описания'}</strong></div>
+                        <div class="publication-date">🕐 ${new Date(pub.timestamp).toLocaleString('ru-RU')}</div>
+                    </div>
+                `).join('');
+            }
+            
+            contextMenu.style.left = event.pageX + 'px';
+            contextMenu.style.top = event.pageY + 'px';
+            contextMenu.classList.add('show');
+        }
+
+        document.addEventListener('click', function(e) {
+            const contextMenu = document.getElementById('contextMenu');
+            const locationResults = document.getElementById('locationResults');
+            if (!contextMenu.contains(e.target)) contextMenu.classList.remove('show');
+            if (!locationResults.contains(e.target)) locationResults.classList.remove('show');
+        });
+
+        function toggleMapObject(objectType, button) {
+            document.querySelectorAll('.object-filter-btn').forEach(btn => btn.classList.remove('active'));
+            
+            if (objectType === 'all') {
+                button.classList.add('active');
+                activeMapObjects.clear();
+                activeMapObjects.add('all');
+                Object.keys(mapObjects).forEach(key => {
+                    mapObjects[key].forEach(obj => myMap.geoObjects.add(obj));
+                });
+                myMap.setCenter(OBJECT_ZOOM_SETTINGS.all.center, OBJECT_ZOOM_SETTINGS.all.zoom, { duration: 1000 });
+            } else {
+                if (activeMapObjects.has(objectType)) {
+                    activeMapObjects.delete(objectType);
+                    mapObjects[objectType].forEach(obj => myMap.geoObjects.remove(obj));
+                } else {
+                    activeMapObjects.add(objectType);
+                    activeMapObjects.delete('all');
+                    mapObjects[objectType].forEach(obj => myMap.geoObjects.add(obj));
+                    button.classList.add('active');
+                    const zoomSettings = OBJECT_ZOOM_SETTINGS[objectType];
+                    if (zoomSettings) myMap.setCenter(zoomSettings.center, zoomSettings.zoom, { duration: 1000, checkZoomRange: true });
+                }
+                if (activeMapObjects.size === 0) {
+                    document.querySelector('.object-filter-btn.all').classList.add('active');
+                    activeMapObjects.add('all');
+                }
+            }
+        }
+
+        function openMarkerModal(coords) {
+            pendingCoords = coords;
+            selectedMarkerType = null;
+            document.getElementById('markerDescription').value = '';
+            document.getElementById('markerPhoto').value = '';
+            document.getElementById('photoPreview').classList.remove('show');
+            currentPhotoData = null;
+            document.getElementById('markerModal').classList.add('show');
+            document.querySelectorAll('.modal-btn').forEach(btn => {
+                btn.style.background = 'white';
+                btn.style.color = '';
+            });
+        }
+
+        function closeModal() {
+            document.getElementById('markerModal').classList.remove('show');
+            pendingCoords = null;
+            selectedMarkerType = null;
+            currentPhotoData = null;
+        }
+
+        function selectMarkerType(type) {
+            selectedMarkerType = type;
+            document.querySelectorAll('.modal-btn').forEach(btn => {
+                btn.style.background = 'white';
+                btn.style.color = '';
+            });
+            const selectedBtn = document.querySelector(`.modal-btn[data-type="${type}"]`);
+            const iconConfig = MARKER_ICONS[type];
+            selectedBtn.style.background = iconConfig.color;
+            selectedBtn.style.color = 'white';
+        }
+
+        function previewPhoto() {
+            const fileInput = document.getElementById('markerPhoto');
+            const preview = document.getElementById('photoPreview');
+            
+            if (fileInput.files && fileInput.files[0]) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    preview.src = e.target.result;
+                    preview.classList.add('show');
+                    currentPhotoData = e.target.result;
+                };
+                reader.readAsDataURL(fileInput.files[0]);
+            }
+        }
+
+        function confirmMarker() {
+            if (!selectedMarkerType) { alert('⚠️ Выберите тип метки!'); return; }
+            if (!pendingCoords) { alert('⚠️ Ошибка координат!'); return; }
+            
+            const description = document.getElementById('markerDescription').value.trim();
+            const timestamp = Date.now();
+            
+            createMarkerWithIcon(pendingCoords[0], pendingCoords[1], selectedMarkerType, description, currentPhotoData, timestamp);
+            
+            if (currentPhotoData) {
+                savePublication(selectedMarkerType, description, currentPhotoData, timestamp, pendingCoords[0], pendingCoords[1]);
+            }
+            closeModal();
+        }
+
+        function savePublication(markerType, description, photo, timestamp, lat, lon) {
+            const publications = JSON.parse(localStorage.getItem('markerPublications') || '[]');
+            publications.push({ markerType, description, photo, timestamp, lat, lon });
+            if (publications.length > 50) publications.shift();
+            localStorage.setItem('markerPublications', JSON.stringify(publications));
+            loadNewsFeed();
+        }
+
+        function handleSearchKey(event) {
+            if (event.key === 'Enter') searchLocation();
+        }
+
+        function searchLocation() {
+            const query = document.getElementById('searchInput').value.trim();
+            const resultsDiv = document.getElementById('searchResults');
+            if (!query) return;
+
+            resultsDiv.innerHTML = '';
+            resultsDiv.classList.remove('show');
+
+            ymaps.geocode(query, { results: 5 }).then(function (res) {
+                const geoObjects = res.geoObjects;
+                if (geoObjects.length === 0) {
+                    resultsDiv.innerHTML = '<div class="search-result-item">Ничего не найдено</div>';
+                    resultsDiv.classList.add('show');
+                    return;
+                }
+                geoObjects.each(function (obj) {
+                    const name = obj.properties.get('name') || obj.getAddressLine();
+                    const item = document.createElement('div');
+                    item.className = 'search-result-item';
+                    item.textContent = name;
+                    item.onclick = function() {
+                        goToLocation(obj);
+                        resultsDiv.classList.remove('show');
+                    };
+                    resultsDiv.appendChild(item);
+                });
+                resultsDiv.classList.add('show');
+            }).catch(function(err) {
+                console.error('Ошибка поиска:', err);
+            });
+        }
+
+        function goToLocation(geoObject) {
+            const bounds = geoObject.properties.get('boundedBy');
+            if (bounds) {
+                myMap.setBounds(bounds, { checkZoomRange: true, zoomMargin: 50, duration: 1000 });
+            } else {
+                myMap.setCenter(geoObject.geometry.getCoordinates(), 12, { duration: 1000 });
+            }
+            const tempPlacemark = new ymaps.Placemark(geoObject.geometry.getCoordinates(), {
+                hintContent: geoObject.properties.get('name'),
+                balloonContent: `<b>${geoObject.getAddressLine()}</b>`
+            }, { preset: 'islands#redCircleDotIcon' });
+            myMap.geoObjects.add(tempPlacemark);
+            setTimeout(() => myMap.geoObjects.remove(tempPlacemark), 5000);
+        }
+
+        function filterMarkers(type, element) {
+            currentFilter = type;
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                if (!btn.classList.contains('object-filter-btn')) btn.classList.remove('active');
+            });
+            element.classList.add('active');
+            applyFilter();
+        }
+
+        function applyFilter() {
+            allMarks.forEach(mark => {
+                const markerType = mark.properties.get('markerType');
+                mark.options.set('visible', currentFilter === 'all' || markerType === currentFilter);
+            });
+        }
+
+        function createMarkerWithIcon(lat, lon, markerType, description, photo, timestamp) {
+            const iconConfig = MARKER_ICONS[markerType] || MARKER_ICONS['олени'];
+            const iconContent = `<div style="font-size: 32px; line-height: 1; text-align: center; filter: drop-shadow(2px 2px 2px rgba(0,0,0,0.5));">${iconConfig.emoji}</div>`;
+
+            let balloonContent = `<b>${description || 'Нет описания'}</b>`;
+            if (photo) balloonContent += `<br><img src="${photo}" style="max-width:200px;margin-top:10px;margin-bottom:10px;border-radius:8px;">`;
+            balloonContent += `<br><div style="margin-top:10px;padding-top:10px;border-top:1px solid #ddd;font-size:12px;color:#666;">`;
+            balloonContent += `<strong>📍 Координаты:</strong><br>${lat.toFixed(6)}, ${lon.toFixed(6)}`;
+            if (timestamp) {
+                const pubDate = new Date(timestamp);
+                balloonContent += `<br><br><strong>🕐 Опубликовано:</strong><br>${pubDate.toLocaleString('ru-RU')}`;
+            }
+            balloonContent += `</div>`;
+
+            let myPlacemark = new ymaps.Placemark([lat, lon], {
+                hintContent: `${iconConfig.emoji} ${iconConfig.label}: ${description}`,
+                balloonContentHeader: `<span style="color: ${iconConfig.color}">${iconConfig.emoji} ${iconConfig.label}</span>`,
+                balloonContentBody: balloonContent,
+                markerType: markerType,
+                timestamp: timestamp,
+                photo: photo
+            }, {
+                iconLayout: 'default#imageWithContent',
+                iconImageHref: 'image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40"><rect width="40" height="40" fill="transparent"/></svg>',
+                iconImageSize: [40, 40],
+                iconImageOffset: [-20, -20],
+                iconContent: iconContent,
+                iconContentOffset: [0, 0],
+                iconContentLayout: ymaps.templateLayoutFactory.createClass(iconContent)
+            });
+
+            myPlacemark.events.add('contextmenu', function (e) {
+                e.stopPropagation();
+                if (confirm('🗑 Удалить эту метку?')) {
+                    myMap.geoObjects.remove(myPlacemark);
+                    allMarks = allMarks.filter(m => m !== myPlacemark);
+                }
+            });
+
+            myMap.geoObjects.add(myPlacemark);
+            allMarks.push(myPlacemark);
+            applyFilter();
+        }
+
+        document.addEventListener('click', function(e) {
+            const searchContainer = document.querySelector('.search-container');
+            const searchResults = document.getElementById('searchResults');
+            const modal = document.getElementById('markerModal');
+            if (!searchContainer.contains(e.target) && !modal.contains(e.target)) {
+                searchResults.classList.remove('show');
+            }
+        });
+
+        document.getElementById('markerModal').addEventListener('click', function(e) {
+            if (e.target === this) closeModal();
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') closeModal();
+        });
+    </script>
+</body>
+</html>
